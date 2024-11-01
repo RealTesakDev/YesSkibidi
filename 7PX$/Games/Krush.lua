@@ -1,3 +1,18 @@
+local plrs = game:GetService("Players")
+local lplr = plrs.LocalPlayer
+local guns = {"Fuzil", "Pistola"}  -- List of possible gun names
+local selectedGunName = guns[1]  -- Default selection
+local selectedGun
+
+-- Function to update the gun attributes
+local function updateAttribute(attribute, value)
+    if selectedGun then
+        selectedGun:SetAttribute(attribute, value)
+    else
+        warn("Gun not selected or does not exist.")
+    end
+end
+
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -18,6 +33,114 @@ local Tabs = {
     Combat = Window:AddTab('Combat'),
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
+
+
+-- Combat Tab with Separated GroupBoxes
+-- Silent Aim Features GroupBox
+local SilentAimGroupBox = Tabs.Combat:AddLeftGroupbox('Silent Aim Features')
+
+SilentAimGroupBox:AddToggle('SilentAim', {
+    Text = 'Silent Aim',
+    Default = false,
+    Tooltip = 'Enable Silent Aim',
+    Callback = function(Value)
+        print('[cb] Silent Aim changed to:', Value)
+    end
+})
+
+SilentAimGroupBox:AddSlider('FOVCircle', {
+    Text = 'FOV Circle Size',
+    Default = 50,
+    Min = 0,
+    Max = 200,
+    Rounding = 0,
+    Callback = function(Value)
+        print('[cb] FOV Circle size changed to:', Value)
+    end
+})
+
+-- Aimbot Features GroupBox
+local AimbotGroupBox = Tabs.Combat:AddRightGroupbox('Aimbot Features')
+
+AimbotGroupBox:AddToggle('Aimbot', {
+    Text = 'Aimbot',
+    Default = false,
+    Tooltip = 'Enable Aimbot',
+    Callback = function(Value)
+        print('[cb] Aimbot changed to:', Value)
+    end
+})
+
+AimbotGroupBox:AddToggle('InstantAim', {
+    Text = 'Instant Aim',
+    Default = false,
+    Tooltip = 'Enable Instant Aim',
+    Callback = function(Value)
+        print('[cb] Instant Aim changed to:', Value)
+    end
+})
+
+AimbotGroupBox:AddToggle('RecoilAimFOV', {
+    Text = 'Recoil Aim FOV',
+    Default = false,
+    Tooltip = 'Enable Recoil Aim FOV',
+    Callback = function(Value)
+        print('[cb] Recoil Aim FOV changed to:', Value)
+    end
+})
+
+-- Gun Modifications GroupBox
+local GunModsGroupBox = Tabs.Combat:AddLeftGroupbox('Gun Modifications')
+
+GunModsGroupBox:AddSlider('InfiniteAmmo', {
+    Text = 'Current Ammo',
+    Default = 30,
+    Min = 0,
+    Max = 1000000000000,
+    Rounding = 0,
+    Callback = function(Value)
+        updateAttribute("CurrentAmmo", Value)  -- Use `Value` with capital V
+        print('[cb] Infinite Ammo changed to:', Value)
+    end
+})
+
+GunModsGroupBox:AddSlider('FireRate', {
+    Text = 'Fire Rate',
+    Default = 0,
+    Min = 0,
+    Max = 1,
+    Rounding = 0,
+    Callback = function(Value)
+        updateAttribute("FireRate", Value)  -- Use `Value` with capital V
+        print('[cb] Fire Rate changed to:', Value)
+    end
+})
+
+GunModsGroupBox:AddToggle('FullAuto', {
+    Text = 'Full Auto Guns',
+    Default = false,
+    Tooltip = 'Enable Full Auto for guns',
+    Callback = function(Value)
+        print('[cb] Full Auto changed to:', Value)
+    end
+})
+
+GunModsGroupBox:AddDropdown('CurrentGun', {
+    Values = { 'Pistola', 'Fuzil' },
+    Default = "Pistola", -- number index of the value / string
+    Multi = false, -- true / false, allows multiple choices to be selected
+
+    Text = 'Current Gun',
+    Tooltip = 'For Gun Mods', -- Information shown when you hover over the dropdown
+
+    Callback = function(selected)
+        selectedGunName = selected
+        selectedGun = lplr.Backpack:FindFirstChild(selectedGunName) or lplr.Character:FindFirstChild(selectedGunName)
+        if not selectedGun then
+            warn(selectedGunName .. " not found in Backpack or Character")
+        end
+    end
+})
 
 -- Visuals Tab (Keeping the original structure)
 local BoxESPGroupBox = Tabs.Visuals:AddLeftGroupbox('Box ESP')
@@ -156,92 +279,6 @@ TextSettingsGroupBox:AddLabel('Text Outline Color'):AddColorPicker('TextOutlineC
 })
 
 
-
--- Combat Tab with Separated GroupBoxes
--- Silent Aim Features GroupBox
-local SilentAimGroupBox = Tabs.Combat:AddLeftGroupbox('Silent Aim Features')
-
-SilentAimGroupBox:AddToggle('SilentAim', {
-    Text = 'Silent Aim',
-    Default = false,
-    Tooltip = 'Enable Silent Aim',
-    Callback = function(Value)
-        print('[cb] Silent Aim changed to:', Value)
-    end
-})
-
-SilentAimGroupBox:AddSlider('FOVCircle', {
-    Text = 'FOV Circle Size',
-    Default = 50,
-    Min = 0,
-    Max = 200,
-    Rounding = 0,
-    Callback = function(Value)
-        print('[cb] FOV Circle size changed to:', Value)
-    end
-})
-
--- Aimbot Features GroupBox
-local AimbotGroupBox = Tabs.Combat:AddRightGroupbox('Aimbot Features')
-
-AimbotGroupBox:AddToggle('Aimbot', {
-    Text = 'Aimbot',
-    Default = false,
-    Tooltip = 'Enable Aimbot',
-    Callback = function(Value)
-        print('[cb] Aimbot changed to:', Value)
-    end
-})
-
-AimbotGroupBox:AddToggle('InstantAim', {
-    Text = 'Instant Aim',
-    Default = false,
-    Tooltip = 'Enable Instant Aim',
-    Callback = function(Value)
-        print('[cb] Instant Aim changed to:', Value)
-    end
-})
-
-AimbotGroupBox:AddToggle('RecoilAimFOV', {
-    Text = 'Recoil Aim FOV',
-    Default = false,
-    Tooltip = 'Enable Recoil Aim FOV',
-    Callback = function(Value)
-        print('[cb] Recoil Aim FOV changed to:', Value)
-    end
-})
-
--- Gun Modifications GroupBox
-local GunModsGroupBox = Tabs.Combat:AddLeftGroupbox('Gun Modifications')
-
-GunModsGroupBox:AddToggle('InfiniteAmmo', {
-    Text = 'Infinite Ammo',
-    Default = false,
-    Tooltip = 'Enable Infinite Ammo',
-    Callback = function(Value)
-        print('[cb] Infinite Ammo changed to:', Value)
-    end
-})
-
-GunModsGroupBox:AddToggle('FullAuto', {
-    Text = 'Full Auto Guns',
-    Default = false,
-    Tooltip = 'Enable Full Auto for guns',
-    Callback = function(Value)
-        print('[cb] Full Auto changed to:', Value)
-    end
-})
-
-GunModsGroupBox:AddSlider('FireRate', {
-    Text = 'Fire Rate',
-    Default = 0.1,
-    Min = 0,
-    Max = 1,
-    Rounding = 2,
-    Callback = function(Value)
-        print('[cb] Fire Rate changed to:', Value)
-    end
-})
 
 -- Library functions
 Library:SetWatermarkVisibility(true)
