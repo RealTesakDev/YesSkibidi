@@ -1,8 +1,44 @@
-local plrs = game:GetService("Players")
-local lplr = plrs.LocalPlayer
+local startTime = tick()
+
+-- Hook Meta Method Olds
+local HumanoidOld
+
+-- Startups
+local gmt = getrawmetatable(game)
+setreadonly(gmt, false)
+
+local nameCall = gmt.__namecall
+
+local plrs = game.Players
+local plyers = game:GetService("Players")
+local lplr = plyers.LocalPlayer
 local guns = {"Fuzil", "Pistola"}  -- List of possible gun names
 local selectedGunName = guns[1]  -- Default selection
 local selectedGun
+
+local Camera = game.Workspace.CurrentCamera
+local Mouse = game.Players.LocalPlayer:GetMouse()
+
+
+
+local humanoid = lplr.Character.Humanoid
+
+-- Anti Cheat Bypass 
+
+HumanoidOld = hookmetamethod(game,"__index",function(self,key)
+    if self == humanoid then
+        if key == "WalkSpeed" then
+            return 16
+        elseif key == "JumpPower" then 
+            return 20
+        end
+    end
+    return HumanoidOld(self,key)
+end)
+
+local endTime = tick()
+local elapsedTime = endTime - startTime
+
 
 -- Function to update the gun attributes
 local function updateAttribute(attribute, value)
@@ -12,6 +48,18 @@ local function updateAttribute(attribute, value)
         warn("Gun not selected or does not exist.")
     end
 end
+
+-- ESP
+local Sense = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Sirius/request/library/sense/source.lua'))()
+
+Sense.teamSettings.enemy.enabled = true
+Sense.sharedSettings.textSize = 12
+Sense.sharedSettings.textFont = 2
+Sense.sharedSettings.limitDistance = false
+
+
+
+-- UI LIB
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 
@@ -29,12 +77,12 @@ local Window = Library:CreateWindow({
 
 
 local Tabs = {
-    Visuals = Window:AddTab('Visuals'),
     Combat = Window:AddTab('Combat'),
+    Visuals = Window:AddTab('Visuals'),
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
-
+Library:Notify(string.format("AntiCheat Bypassed in %.2f ms", elapsedTime * 1000), 10)
 -- Combat Tab with Separated GroupBoxes
 -- Silent Aim Features GroupBox
 local SilentAimGroupBox = Tabs.Combat:AddLeftGroupbox('Silent Aim Features')
@@ -71,15 +119,6 @@ AimbotGroupBox:AddToggle('Aimbot', {
     end
 })
 
-AimbotGroupBox:AddToggle('InstantAim', {
-    Text = 'Instant Aim',
-    Default = false,
-    Tooltip = 'Enable Instant Aim',
-    Callback = function(Value)
-        print('[cb] Instant Aim changed to:', Value)
-    end
-})
-
 AimbotGroupBox:AddToggle('RecoilAimFOV', {
     Text = 'Recoil Aim FOV',
     Default = false,
@@ -92,23 +131,12 @@ AimbotGroupBox:AddToggle('RecoilAimFOV', {
 -- Gun Modifications GroupBox
 local GunModsGroupBox = Tabs.Combat:AddLeftGroupbox('Gun Modifications')
 
-GunModsGroupBox:AddSlider('InfiniteAmmo', {
-    Text = 'Current Ammo',
-    Default = 30,
-    Min = 0,
-    Max = 1000000000000,
-    Rounding = 0,
-    Callback = function(Value)
-        updateAttribute("CurrentAmmo", Value)  -- Use `Value` with capital V
-        print('[cb] Infinite Ammo changed to:', Value)
-    end
-})
-
+updateAttribute("FireRate", 0)
 GunModsGroupBox:AddSlider('FireRate', {
     Text = 'Fire Rate',
-    Default = 0,
-    Min = 0,
-    Max = 1,
+    Default = 0.0,
+    Min = 0.0,
+    Max = 1.0,
     Rounding = 0,
     Callback = function(Value)
         updateAttribute("FireRate", Value)  -- Use `Value` with capital V
@@ -116,17 +144,37 @@ GunModsGroupBox:AddSlider('FireRate', {
     end
 })
 
-GunModsGroupBox:AddToggle('FullAuto', {
+local FullAuto = GunModsGroupBox:AddButton({
     Text = 'Full Auto Guns',
-    Default = false,
-    Tooltip = 'Enable Full Auto for guns',
-    Callback = function(Value)
-        print('[cb] Full Auto changed to:', Value)
-    end
+    Func = function()
+        updateAttribute("FireType", "Auto")
+        print('You clicked a button!')
+    end,
+    DoubleClick = false,
+    Tooltip = 'Enable Full Auto for guns'
 })
 
+local InstaAim = GunModsGroupBox:AddButton({
+    Text = 'Instant Aim',
+    Func = function()
+        updateAttribute("AimSpeed", 0)
+    end,
+    DoubleClick = false,
+    Tooltip = 'Enable Instant Aim'
+})
+
+local InfAmmo = GunModsGroupBox:AddButton({
+    Text = 'Infinite Ammo',
+    Func = function()
+        updateAttribute("CurrentAmmo", math.huge)
+    end,
+    DoubleClick = false,
+    Tooltip = 'Enable Infinite Ammo'
+})
+
+
 GunModsGroupBox:AddDropdown('CurrentGun', {
-    Values = { 'Pistola', 'Fuzil' },
+    Values = guns,
     Default = "Pistola", -- number index of the value / string
     Multi = false, -- true / false, allows multiple choices to be selected
 
@@ -150,6 +198,7 @@ BoxESPGroupBox:AddToggle('ESPBoxes', {
     Default = false,
     Tooltip = 'Toggle to enable/disable ESP boxes',
     Callback = function(Value)
+        Sense.teamSettings.enemy.box = Value
         print('[cb] ESP Boxes changed to:', Value)
     end
 })
@@ -159,20 +208,11 @@ BoxESPGroupBox:AddLabel('Box Color'):AddColorPicker('BoxColorPicker', {
     Title = 'Box Color',
     Transparency = 0,
     Callback = function(Value)
+        Sense.teamSettings.enemy.boxColor[1] = Value
         print('[cb] Box Color changed!', Value)
     end
 })
 
-BoxESPGroupBox:AddSlider('BoxThickness', {
-    Text = 'Box Thickness',
-    Default = 1,
-    Min = 0,
-    Max = 5,
-    Rounding = 0,
-    Callback = function(Value)
-        print('[cb] Box Thickness changed to:', Value)
-    end
-})
 
 BoxESPGroupBox:AddToggle('CornerBoxes', {
     Text = 'Enable Corner Boxes',
@@ -188,6 +228,7 @@ BoxESPGroupBox:AddToggle('ESP3DBox', {
     Default = false,
     Tooltip = 'Toggle to enable/disable 3D boxes',
     Callback = function(Value)
+        Sense.teamSettings.enemy.box3d = Value
         print('[cb] 3D Box changed to:', Value)
     end
 })
@@ -200,14 +241,25 @@ ChamsGroupBox:AddToggle('PlayerChams', {
     Default = false,
     Tooltip = 'Toggle to enable/disable player chams',
     Callback = function(Value)
+        Sense.teamSettings.enemy.chams = Value
         print('[cb] Player Chams changed to:', Value)
+    end
+})
+
+ChamsGroupBox:AddLabel('Chams Color1'):AddColorPicker('ChamsColorPicker', {
+    Default = Color3.new(0, 1, 0),
+    Title = 'Chams Fill Color',
+    Callback = function(Value)
+        Sense.teamSettings.enemy.chamsOutlineColor[1] = Value
+        print('[cb] Chams Color changed!', Value)
     end
 })
 
 ChamsGroupBox:AddLabel('Chams Color'):AddColorPicker('ChamsColorPicker', {
     Default = Color3.new(0, 1, 0),
-    Title = 'Chams Color',
+    Title = 'Chams Outline Color',
     Callback = function(Value)
+        Sense.teamSettings.enemy.chamsFillColor[1] = Value
         print('[cb] Chams Color changed!', Value)
     end
 })
@@ -217,6 +269,7 @@ ChamsGroupBox:AddToggle('FillBoxes', {
     Default = false,
     Tooltip = 'Toggle to enable/disable filled boxes',
     Callback = function(Value)
+        Sense.teamSettings.enemy.boxFill = Value
         print('[cb] Fill Boxes changed to:', Value)
     end
 })
@@ -225,6 +278,7 @@ ChamsGroupBox:AddLabel('Fill Box Color'):AddColorPicker('FillBoxColorPicker', {
     Default = Color3.new(1, 0, 0, 0.5),
     Title = 'Fill Box Color',
     Callback = function(Value)
+        Sense.teamSettings.enemy.boxFillColor[1] = Value
         print('[cb] Fill Box Color changed!', Value)
     end
 })
@@ -237,6 +291,7 @@ IndicatorsGroupBox:AddToggle('PlayerHealthBar', {
     Default = false,
     Tooltip = 'Toggle to enable/disable player health bars',
     Callback = function(Value)
+        Sense.teamSettings.enemy.healthBar = Value
         print('[cb] Player Health Bar changed to:', Value)
     end
 })
@@ -246,6 +301,7 @@ IndicatorsGroupBox:AddToggle('ESPTracers', {
     Default = false,
     Tooltip = 'Toggle to enable/disable tracers',
     Callback = function(Value)
+        Sense.teamSettings.enemy.tracer = Value
         print('[cb] Tracers changed to:', Value)
     end
 })
@@ -255,26 +311,8 @@ IndicatorsGroupBox:AddToggle('OffscreenArrows', {
     Default = false,
     Tooltip = 'Toggle to enable/disable offscreen arrows',
     Callback = function(Value)
+        Sense.teamSettings.enemy.offScreenArrow = Value
         print('[cb] Offscreen Arrows changed to:', Value)
-    end
-})
-
--- Text Settings GroupBox
-local TextSettingsGroupBox = Tabs.Visuals:AddRightGroupbox('Text Settings')
-
-TextSettingsGroupBox:AddLabel('Text Color'):AddColorPicker('TextColorPicker', {
-    Default = Color3.new(1, 1, 1),
-    Title = 'Text Color',
-    Callback = function(Value)
-        print('[cb] Text Color changed!', Value)
-    end
-})
-
-TextSettingsGroupBox:AddLabel('Text Outline Color'):AddColorPicker('TextOutlineColorPicker', {
-    Default = Color3.new(0, 0, 0),
-    Title = 'Text Outline Color',
-    Callback = function(Value)
-        print('[cb] Text Outline Color changed!', Value)
     end
 })
 
@@ -282,8 +320,9 @@ TextSettingsGroupBox:AddLabel('Text Outline Color'):AddColorPicker('TextOutlineC
 
 -- Library functions
 Library:SetWatermarkVisibility(true)
-Library:Notify("Hello World!", 5)
-Library:SetWatermark('This is a really long watermark to test the resizing')
+Library:Notify("AntiCheat Bypassed", 3)
+Library:Notify("Made By : Sea And 7PX$", 5)
+Library:SetWatermark('SigmaGuard.lua')
 Library.KeybindFrame.Visible = true;
 
 Library:OnUnload(function()
@@ -310,3 +349,57 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 ThemeManager:ApplyTheme('BBot')
 SaveManager:LoadAutoloadConfig()
+
+
+Sense.Load()
+
+-- Combat Methods
+local function getClosestPlayerToMouse()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(game.Workspace:GetChildren()) do
+        if player:IsA("Model") and player:FindFirstChild("Head") and player.Name ~= lplr.Name then
+            local head = player.Head
+            local headScreenPos, onScreen = Camera:WorldToScreenPoint(head.Position)
+
+            if onScreen then
+                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                local distance = (mousePos - Vector2.new(headScreenPos.X, headScreenPos.Y)).Magnitude
+                
+                if distance < shortestDistance then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function shootClosestPlayer(currentGun)
+    local closestPlayer = getClosestPlayerToMouse()
+    if closestPlayer then
+        if not lplr.Character:FindFirstChild(currentGun) then
+            return
+        end
+        local args = {
+            [1] = closestPlayer.Humanoid,
+            [2] = closestPlayer.Head,
+            [3] = Vector3.new(closestPlayer.Head.Position.X, closestPlayer.Head.Position.Y, closestPlayer.Head.Position.Z)
+        }
+        
+        lplr.Character[currentGun].EventsFolder.InflictTarget:FireServer(unpack(args))
+    end
+end
+
+gmt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if Toggles.SilentAim.Value then
+        if tostring(method) == "FireServer" and tostring(self) == "Fire" then
+            shootClosestPlayer(selectedGunName)
+        end
+    end
+    return nameCall(self, ...)
+end)

@@ -4,6 +4,7 @@
         "setreadonly",
         "newcclosure",
         "getnamecallmethod",
-        "hookmetamethod"
+        "hookmetamethod",
+        "Toggles"
     ]
 }

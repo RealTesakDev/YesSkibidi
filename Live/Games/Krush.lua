@@ -1,6 +1,13 @@
 local startTime = tick()
 
+-- Hook Meta Method Olds
 local HumanoidOld
+
+-- Startups
+local gmt = getrawmetatable(game)
+setreadonly(gmt, false)
+
+local nameCall = gmt.__namecall
 
 local plrs = game.Players
 local plyers = game:GetService("Players")
@@ -8,6 +15,9 @@ local lplr = plyers.LocalPlayer
 local guns = {"Fuzil", "Pistola"}  -- List of possible gun names
 local selectedGunName = guns[1]  -- Default selection
 local selectedGun
+
+local Camera = game.Workspace.CurrentCamera
+local Mouse = game.Players.LocalPlayer:GetMouse()
 
 
 
@@ -164,7 +174,7 @@ local InfAmmo = GunModsGroupBox:AddButton({
 
 
 GunModsGroupBox:AddDropdown('CurrentGun', {
-    Values = { 'Pistola', 'Fuzil' },
+    Values = guns,
     Default = "Pistola", -- number index of the value / string
     Multi = false, -- true / false, allows multiple choices to be selected
 
@@ -342,3 +352,54 @@ SaveManager:LoadAutoloadConfig()
 
 
 Sense.Load()
+
+-- Combat Methods
+local function getClosestPlayerToMouse()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(game.Workspace:GetChildren()) do
+        if player:IsA("Model") and player:FindFirstChild("Head") and player.Name ~= lplr.Name then
+            local head = player.Head
+            local headScreenPos, onScreen = Camera:WorldToScreenPoint(head.Position)
+
+            if onScreen then
+                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                local distance = (mousePos - Vector2.new(headScreenPos.X, headScreenPos.Y)).Magnitude
+                
+                if distance < shortestDistance then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function shootClosestPlayer(currentGun)
+    local closestPlayer = getClosestPlayerToMouse()
+    if closestPlayer then
+        if not lplr.Character:FindFirstChild(currentGun) then
+            return
+        end
+        local args = {
+            [1] = closestPlayer.Humanoid,
+            [2] = closestPlayer.Head,
+            [3] = Vector3.new(closestPlayer.Head.Position.X, closestPlayer.Head.Position.Y, closestPlayer.Head.Position.Z)
+        }
+        
+        lplr.Character[currentGun].EventsFolder.InflictTarget:FireServer(unpack(args))
+    end
+end
+
+gmt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if Toggles.SilentAim.Value then
+        if tostring(method) == "FireServer" and tostring(self) == "Fire" then
+            shootClosestPlayer(selectedGunName)
+        end
+    end
+    return nameCall(self, ...)
+end)
