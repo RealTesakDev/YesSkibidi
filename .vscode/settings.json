@@ -5,6 +5,7 @@
         "newcclosure",
         "getnamecallmethod",
         "hookmetamethod",
-        "Toggles"
+        "Toggles",
+        "Options"
     ]
 }

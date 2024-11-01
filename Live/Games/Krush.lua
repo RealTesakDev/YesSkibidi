@@ -1,29 +1,40 @@
+--<< Timeing Start >>--
 local startTime = tick()
 
--- Hook Meta Method Olds
-local HumanoidOld
 
--- Startups
+
+--<< Advanced Variables >>--
+local HumanoidOld
 local gmt = getrawmetatable(game)
 setreadonly(gmt, false)
-
 local nameCall = gmt.__namecall
 
+
+
+--<< Variables >>--
+local Script = {
+    Author = "Sea And 7PX$",
+    Watermark = "SigmaGuard.lua",
+
+    Functions = {}
+}
+
+-- Base --
 local plrs = game.Players
 local plyers = game:GetService("Players")
 local lplr = plyers.LocalPlayer
+local Camera = game.Workspace.CurrentCamera
+local Mouse = game.Players.LocalPlayer:GetMouse()
+local humanoid = lplr.Character.Humanoid
+
+-- Script --
 local guns = {"Fuzil", "Pistola"}  -- List of possible gun names
 local selectedGunName = guns[1]  -- Default selection
 local selectedGun
 
-local Camera = game.Workspace.CurrentCamera
-local Mouse = game.Players.LocalPlayer:GetMouse()
 
 
-
-local humanoid = lplr.Character.Humanoid
-
--- Anti Cheat Bypass 
+--<< Anti Cheat Bypass >>--
 
 HumanoidOld = hookmetamethod(game,"__index",function(self,key)
     if self == humanoid then
@@ -40,16 +51,8 @@ local endTime = tick()
 local elapsedTime = endTime - startTime
 
 
--- Function to update the gun attributes
-local function updateAttribute(attribute, value)
-    if selectedGun then
-        selectedGun:SetAttribute(attribute, value)
-    else
-        warn("Gun not selected or does not exist.")
-    end
-end
 
--- ESP
+--<< Sense Lib >>--
 local Sense = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Sirius/request/library/sense/source.lua'))()
 
 Sense.teamSettings.enemy.enabled = true
@@ -59,13 +62,13 @@ Sense.sharedSettings.limitDistance = false
 
 
 
--- UI LIB
-
+--<< Library >>--
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
-
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+
+Library:Notify(string.format("AntiCheat Bypassed in %.2f ms", elapsedTime * 1000), 10) -- Notified fast as possible since it's important
 
 local Window = Library:CreateWindow({
     Title = 'SigmaSploit.Ez',
@@ -74,17 +77,17 @@ local Window = Library:CreateWindow({
     TabPadding = 8
 })
 
-
-
 local Tabs = {
     Combat = Window:AddTab('Combat'),
     Visuals = Window:AddTab('Visuals'),
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
-Library:Notify(string.format("AntiCheat Bypassed in %.2f ms", elapsedTime * 1000), 10)
--- Combat Tab with Separated GroupBoxes
--- Silent Aim Features GroupBox
+
+
+--<< Combat Tab >>--
+
+-- SilentAim
 local SilentAimGroupBox = Tabs.Combat:AddLeftGroupbox('Silent Aim Features')
 
 SilentAimGroupBox:AddToggle('SilentAim', {
@@ -107,7 +110,7 @@ SilentAimGroupBox:AddSlider('FOVCircle', {
     end
 })
 
--- Aimbot Features GroupBox
+-- Aimbot
 local AimbotGroupBox = Tabs.Combat:AddRightGroupbox('Aimbot Features')
 
 AimbotGroupBox:AddToggle('Aimbot', {
@@ -128,10 +131,10 @@ AimbotGroupBox:AddToggle('RecoilAimFOV', {
     end
 })
 
--- Gun Modifications GroupBox
+-- Gun Modifications
 local GunModsGroupBox = Tabs.Combat:AddLeftGroupbox('Gun Modifications')
 
-updateAttribute("FireRate", 0)
+--Script.Functions.updateAttribute("FireRate", 0)
 GunModsGroupBox:AddSlider('FireRate', {
     Text = 'Fire Rate',
     Default = 0.0,
@@ -139,7 +142,7 @@ GunModsGroupBox:AddSlider('FireRate', {
     Max = 1.0,
     Rounding = 0,
     Callback = function(Value)
-        updateAttribute("FireRate", Value)  -- Use `Value` with capital V
+        Script.Functions.updateAttribute("FireRate", Value)  -- Use `Value` with capital V
         print('[cb] Fire Rate changed to:', Value)
     end
 })
@@ -147,7 +150,7 @@ GunModsGroupBox:AddSlider('FireRate', {
 local FullAuto = GunModsGroupBox:AddButton({
     Text = 'Full Auto Guns',
     Func = function()
-        updateAttribute("FireType", "Auto")
+        Script.Functions.updateAttribute("FireType", "Auto")
         print('You clicked a button!')
     end,
     DoubleClick = false,
@@ -157,7 +160,7 @@ local FullAuto = GunModsGroupBox:AddButton({
 local InstaAim = GunModsGroupBox:AddButton({
     Text = 'Instant Aim',
     Func = function()
-        updateAttribute("AimSpeed", 0)
+        Script.Functions.updateAttribute("AimSpeed", 0)
     end,
     DoubleClick = false,
     Tooltip = 'Enable Instant Aim'
@@ -166,12 +169,11 @@ local InstaAim = GunModsGroupBox:AddButton({
 local InfAmmo = GunModsGroupBox:AddButton({
     Text = 'Infinite Ammo',
     Func = function()
-        updateAttribute("CurrentAmmo", math.huge)
+        Script.Functions.updateAttribute("CurrentAmmo", math.huge)
     end,
     DoubleClick = false,
     Tooltip = 'Enable Infinite Ammo'
 })
-
 
 GunModsGroupBox:AddDropdown('CurrentGun', {
     Values = guns,
@@ -190,7 +192,9 @@ GunModsGroupBox:AddDropdown('CurrentGun', {
     end
 })
 
--- Visuals Tab (Keeping the original structure)
+--<< Visuals Tab >>--
+
+-- ESP
 local BoxESPGroupBox = Tabs.Visuals:AddLeftGroupbox('Box ESP')
 
 BoxESPGroupBox:AddToggle('ESPBoxes', {
@@ -233,7 +237,6 @@ BoxESPGroupBox:AddToggle('ESP3DBox', {
     end
 })
 
--- Chams and Highlights GroupBox
 local ChamsGroupBox = Tabs.Visuals:AddRightGroupbox('Chams & Highlights')
 
 ChamsGroupBox:AddToggle('PlayerChams', {
@@ -283,7 +286,6 @@ ChamsGroupBox:AddLabel('Fill Box Color'):AddColorPicker('FillBoxColorPicker', {
     end
 })
 
--- Health and Indicators GroupBox
 local IndicatorsGroupBox = Tabs.Visuals:AddLeftGroupbox('Health & Indicators')
 
 IndicatorsGroupBox:AddToggle('PlayerHealthBar', {
@@ -318,27 +320,15 @@ IndicatorsGroupBox:AddToggle('OffscreenArrows', {
 
 
 
--- Library functions
-Library:SetWatermarkVisibility(true)
-Library:Notify("AntiCheat Bypassed", 3)
-Library:Notify("Made By : Sea And 7PX$", 5)
-Library:SetWatermark('SigmaGuard.lua')
-Library.KeybindFrame.Visible = true;
-
-Library:OnUnload(function()
-    print('Unloaded!')
-    Library.Unloaded = true
-end)
-
 -- UI Settings
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
-
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
-
 Library.ToggleKeybind = Options.MenuKeybind
 
--- Set up Theme Manager and Save Manager
+
+
+--<< Initalization Managers >>--
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
@@ -350,11 +340,29 @@ ThemeManager:ApplyToTab(Tabs['UI Settings'])
 ThemeManager:ApplyTheme('BBot')
 SaveManager:LoadAutoloadConfig()
 
+Library:SetWatermarkVisibility(true)
+Library:Notify(Script.Author, 5)
+Library:SetWatermark(Script.Watermark)
+Library.KeybindFrame.Visible = true;
+
+Library:OnUnload(function()
+    Library.Unloaded = true
+end)
 
 Sense.Load()
 
--- Combat Methods
-local function getClosestPlayerToMouse()
+
+
+--<< Functions >>--
+function Script.Functions.updateAttribute(attribute, value)
+    if selectedGun then
+        selectedGun:SetAttribute(attribute, value)
+    else
+        warn("Gun not selected or does not exist.")
+    end
+end
+
+function Script.Functions.getClosestPlayerToMouse()
     local closestPlayer = nil
     local shortestDistance = math.huge
 
@@ -378,8 +386,8 @@ local function getClosestPlayerToMouse()
     return closestPlayer
 end
 
-local function shootClosestPlayer(currentGun)
-    local closestPlayer = getClosestPlayerToMouse()
+function Script.Functions.shootClosestPlayer(currentGun)
+    local closestPlayer = Script.Functions.getClosestPlayerToMouse()
     if closestPlayer then
         if not lplr.Character:FindFirstChild(currentGun) then
             return
@@ -389,16 +397,18 @@ local function shootClosestPlayer(currentGun)
             [2] = closestPlayer.Head,
             [3] = Vector3.new(closestPlayer.Head.Position.X, closestPlayer.Head.Position.Y, closestPlayer.Head.Position.Z)
         }
-        
         lplr.Character[currentGun].EventsFolder.InflictTarget:FireServer(unpack(args))
     end
 end
 
+
+
+--<< Initalization >>--
 gmt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if Toggles.SilentAim.Value then
         if tostring(method) == "FireServer" and tostring(self) == "Fire" then
-            shootClosestPlayer(selectedGunName)
+            Script.Functions.shootClosestPlayer(selectedGunName)
         end
     end
     return nameCall(self, ...)
