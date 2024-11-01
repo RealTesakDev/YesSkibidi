@@ -6,6 +6,7 @@
         "getnamecallmethod",
         "hookmetamethod",
         "Toggles",
-        "Options"
+        "Options",
+        "Drawing"
     ]
 }

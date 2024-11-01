@@ -26,8 +26,12 @@ local lplr = plyers.LocalPlayer
 local Camera = game.Workspace.CurrentCamera
 local Mouse = game.Players.LocalPlayer:GetMouse()
 local humanoid = lplr.Character.Humanoid
+local RenderStepped = game:GetService("RunService").RenderStepped
+local UserInputService = game:GetService("UserInputService")
+local GetMouseLocation = UserInputService.GetMouseLocation
 
 -- Script --
+local methods = {"InflictTarget", "Fire"}
 local guns = {"Fuzil", "Pistola"}  -- List of possible gun names
 local selectedGunName = guns[1]  -- Default selection
 local selectedGun
@@ -49,6 +53,19 @@ end)
 
 local endTime = tick()
 local elapsedTime = endTime - startTime
+
+
+
+--<< FOV >>--
+local fov_circle = Drawing.new("Circle")
+fov_circle.Thickness = 1
+fov_circle.NumSides = 100
+fov_circle.Radius = 180
+fov_circle.Filled = false
+fov_circle.Visible = false
+fov_circle.ZIndex = 999
+fov_circle.Transparency = 1
+fov_circle.Color = Color3.fromRGB(0, 0, 0)
 
 
 
@@ -88,25 +105,51 @@ local Tabs = {
 --<< Combat Tab >>--
 
 -- SilentAim
-local SilentAimGroupBox = Tabs.Combat:AddLeftGroupbox('Silent Aim Features')
+local SilentAimGroupBox = Tabs.Combat:AddLeftGroupbox('Silent Aim')
 
 SilentAimGroupBox:AddToggle('SilentAim', {
     Text = 'Silent Aim',
     Default = false,
-    Tooltip = 'Enable Silent Aim',
+    Tooltip = 'Enable Silent Aim'
+})
+
+SilentAimGroupBox:AddDropdown('SilentAimMethod', {
+    Values = methods,
+    Default = "InflictTarget",
+    Multi = false,
+
+    Text = 'Method',
+    Tooltip = 'For Silent Aims'
+})
+
+SilentAimGroupBox:AddDivider()
+
+SilentAimGroupBox:AddToggle('FOVVisible', {
+    Text = 'FOV Visible',
+    Default = false,
+    Tooltip = 'Visiblity of FOV Circle',
     Callback = function(Value)
-        print('[cb] Silent Aim changed to:', Value)
+        fov_circle.Visible = Toggles.FOVVisible.Value
     end
 })
 
-SilentAimGroupBox:AddSlider('FOVCircle', {
-    Text = 'FOV Circle Size',
+SilentAimGroupBox:AddSlider('FOVSize', {
+    Text = 'FOV Size',
     Default = 50,
     Min = 0,
     Max = 200,
     Rounding = 0,
     Callback = function(Value)
-        print('[cb] FOV Circle size changed to:', Value)
+        fov_circle.Radius = Value
+    end
+})
+
+SilentAimGroupBox:AddLabel('FOV Color'):AddColorPicker('FOVColor', {
+    Default = Color3.new(0, 0, 0),
+    Title = 'FOV Color',
+    Transparency = 0,
+    Callback = function(Value)
+        fov_circle.Color = Value
     end
 })
 
@@ -147,7 +190,7 @@ GunModsGroupBox:AddSlider('FireRate', {
     end
 })
 
-local FullAuto = GunModsGroupBox:AddButton({
+GunModsGroupBox:AddButton({
     Text = 'Full Auto Guns',
     Func = function()
         Script.Functions.updateAttribute("FireType", "Auto")
@@ -157,7 +200,7 @@ local FullAuto = GunModsGroupBox:AddButton({
     Tooltip = 'Enable Full Auto for guns'
 })
 
-local InstaAim = GunModsGroupBox:AddButton({
+GunModsGroupBox:AddButton({
     Text = 'Instant Aim',
     Func = function()
         Script.Functions.updateAttribute("AimSpeed", 0)
@@ -166,7 +209,7 @@ local InstaAim = GunModsGroupBox:AddButton({
     Tooltip = 'Enable Instant Aim'
 })
 
-local InfAmmo = GunModsGroupBox:AddButton({
+GunModsGroupBox:AddButton({
     Text = 'Infinite Ammo',
     Func = function()
         Script.Functions.updateAttribute("CurrentAmmo", math.huge)
@@ -375,7 +418,7 @@ function Script.Functions.getClosestPlayerToMouse()
                 local mousePos = Vector2.new(Mouse.X, Mouse.Y)
                 local distance = (mousePos - Vector2.new(headScreenPos.X, headScreenPos.Y)).Magnitude
                 
-                if distance < shortestDistance then
+                if distance < shortestDistance and distance <= fov_circle.Radius then
                     closestPlayer = player
                     shortestDistance = distance
                 end
@@ -390,6 +433,7 @@ function Script.Functions.shootClosestPlayer(currentGun)
     local closestPlayer = Script.Functions.getClosestPlayerToMouse()
     if closestPlayer then
         if not lplr.Character:FindFirstChild(currentGun) then
+            warn("Current gun not found in character.")
             return
         end
         local args = {
@@ -397,19 +441,49 @@ function Script.Functions.shootClosestPlayer(currentGun)
             [2] = closestPlayer.Head,
             [3] = Vector3.new(closestPlayer.Head.Position.X, closestPlayer.Head.Position.Y, closestPlayer.Head.Position.Z)
         }
-        lplr.Character[currentGun].EventsFolder.InflictTarget:FireServer(unpack(args))
+        local gun = lplr.Character[currentGun]
+        if gun and gun:FindFirstChild("EventsFolder") and gun.EventsFolder:FindFirstChild("InflictTarget") then
+            gun.EventsFolder.InflictTarget:FireServer(unpack(args))
+        else
+            warn("InflictTarget event not found in gun's EventsFolder.")
+        end
+    else
+        warn("No closest player found to shoot.")
     end
+end
+
+function Script.Functions.getMousePosition()
+    return GetMouseLocation(UserInputService)
 end
 
 
 
 --<< Initalization >>--
-gmt.__namecall = newcclosure(function(self, ...)
+
+-- Fov Init
+fov_circle.Radius = Options.FOVSize.Value
+fov_circle.Visible = Toggles.FOVVisible.Value
+fov_circle.Color = Options.FOVColor.Value
+
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
     if Toggles.SilentAim.Value then
         if tostring(method) == "FireServer" and tostring(self) == "Fire" then
-            Script.Functions.shootClosestPlayer(selectedGunName)
+            local closestPlayer = Script.Functions.getClosestPlayerToMouse()
+            if closestPlayer then
+                Script.Functions.shootClosestPlayer(selectedGunName)
+            else
+                warn("No closest player found to shoot.")
+                return nil -- Prevent calling FireServer with invalid arguments
+            end
         end
     end
-    return nameCall(self, ...)
+    return oldNamecall(self, ...)
+end)
+
+RenderStepped:Connect(function()
+    if Toggles.FOVVisible.Value then
+        fov_circle.Position = Script.Functions.getMousePosition()
+    end
 end)
