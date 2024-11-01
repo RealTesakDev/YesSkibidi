@@ -1,6 +1,7 @@
 local startTime = tick()
 
-local HumanoidOld
+local SpeedOld
+local JumpOld
 
 local plrs = game.Players
 local plyers = game:GetService("Players")
@@ -15,15 +16,18 @@ local humanoid = lplr.Character.Humanoid
 
 -- Anti Cheat Bypass 
 
-HumanoidOld = hookmetamethod(game,"__index",function(self,key)
-    if self == humanoid then
-        if key == "WalkSpeed" then
-            return 16
-        elseif key == "JumpPower" then 
-            return 20
-        end
+SpeedOld = hookmetamethod(game,"__index",function(self,key)
+    if self == humanoid and key == "WalkSpeed" then
+        return 16
     end
-    return HumanoidOld(self,key)
+    return SpeedOld(self,key)
+end)
+
+JumpOld = hookmetamethod(game,"__index",function(self,key)
+    if self == humanoid and key == "JumpPower" then
+        return 16
+    end
+    return JumpOld(self,key)
 end)
 
 local endTime = tick()
@@ -296,6 +300,7 @@ IndicatorsGroupBox:AddToggle('ESPTracers', {
     end
 })
 
+
 IndicatorsGroupBox:AddToggle('OffscreenArrows', {
     Text = 'Enable Offscreen Arrows',
     Default = false,
@@ -310,7 +315,7 @@ IndicatorsGroupBox:AddToggle('OffscreenArrows', {
 
 -- Library functions
 Library:SetWatermarkVisibility(true)
-Library:Notify("AntiCheat Bypassed", 3)
+
 Library:Notify("Made By : Sea And 7PX$", 5)
 Library:SetWatermark('SigmaGuard.lua')
 Library.KeybindFrame.Visible = true;
