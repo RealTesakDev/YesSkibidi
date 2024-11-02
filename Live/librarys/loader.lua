@@ -114,6 +114,13 @@ function Init(title:string, description:string)
 	Scrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
 	Scrolling.HorizontalScrollBarInset = Enum.ScrollBarInset.ScrollBar
 	Scrolling.ScrollBarThickness = 5
+	Scrolling.ClipsDescendants = true
+	Scrolling.ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0)
+	Scrolling.ScrollBarImageTransparency = 0.5
+	Scrolling.ScrollBarThickness = 5
+	Scrolling.ScrollingDirection = Enum.ScrollingDirection.XY
+	Scrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	Scrolling.ElasticBehavior = Enum.ElasticBehavior.Never
 
 	UIListLayout.Parent = Scrolling
 	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
