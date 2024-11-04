@@ -5,15 +5,19 @@ local DebugEnabled = true
 local lighting = game:GetService("Lighting")
 
 
--- Constants for size limits
-local MIN_BOX_SIZE = Vector2.new(20, 50) -- Minimum box size
-local MAX_BOX_SIZE = Vector2.new(200, 400) -- Maximum box size
-local MIN_HEALTH_BAR_WIDTH = 4 -- Minimum health bar width
-local MAX_HEALTH_BAR_WIDTH = 6 -- Maximum health bar width
-local MIN_HEALTH_BAR_HEIGHT = 60 -- Minimum health bar height
-local MAX_HEALTH_BAR_HEIGHT = 400 -- Maximum health bar height
+local Antihighligt = game:GetService("Stats").PerformanceStats.Memory.CoreMemory["render/glyphatlas/core"]
 
--- Previous lighting settings remain the same...
+if Antihighligt then
+    Antihighligt:Destroy()
+end
+
+local AdorneeUtility = game:GetService("ReplicatedStorage").EmberSharedLibrary.EmberShared.Utilities.AdorneeUtility
+
+if AdorneeUtility then
+    AdorneeUtility:Destroy()
+end
+
+-- Lighting settings remain the same...
 lighting.Brightness = 2
 lighting.GlobalShadows = false
 lighting.Ambient = Color3.new(1, 1, 1)
@@ -21,20 +25,7 @@ lighting.OutdoorAmbient = Color3.new(1, 1, 1)
 lighting.FogEnd = 1e6
 lighting.FogStart = 1e6
 lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-lighting.ColorShift_Top = Color3.new(1, 1, 1)
-
--- Helper function to clamp a number between min and max
-local function clamp(value, min, max)
-    return math.min(math.max(value, min), max)
-end
-
--- Helper function to clamp a Vector2 between min and max Vector2s
-local function clampVector2(vec, minVec, maxVec)
-    return Vector2.new(
-        clamp(vec.X, minVec.X, maxVec.X),
-        clamp(vec.Y, minVec.Y, maxVec.Y)
-    )
-end
+lighting.ColorShift_Top = Color3.new(1, 1, 1)   
 
 local function DebugPrint(message)
     if DebugEnabled then
@@ -152,19 +143,8 @@ local function getCharacterBounds(model, camera)
             end
         end
     end
-
-    local size = Vector2.new(maxX - minX, maxY - minY)
-    -- Clamp the size to our minimum and maximum bounds
-    size = clampVector2(size, MIN_BOX_SIZE, MAX_BOX_SIZE)
     
-    -- Adjust position to maintain center point when clamping size
-    local center = Vector2.new(minX + (maxX - minX)/2, minY + (maxY - minY)/2)
-    local topLeft = Vector2.new(
-        center.X - size.X/2,
-        center.Y - size.Y/2
-    )
-    
-    return size, topLeft
+    return Vector2.new(maxX - minX, maxY - minY), Vector2.new(minX, minY)
 end
 
 function ESP:CreateESPForWorldCharacter(playerModel)
@@ -176,6 +156,14 @@ function ESP:CreateESPForWorldCharacter(playerModel)
     espData.nameText = createOutlinedText()
     espData.distanceText = createOutlinedText()
     espData.weaponText = createOutlinedText()
+
+    -- Add a Highlight for the player model
+    espData.Highlight = Instance.new("Highlight")
+    espData.Highlight.Adornee = playerModel -- Attach the highlight to the player model
+    espData.Highlight.FillColor = Color3.new(1, 0, 0) -- Color of the highlight
+    espData.Highlight.FillTransparency = 0.5 -- Set transparency to 0.5
+    espData.Highlight.OutlineTransparency = 1 -- No outline
+    espData.Highlight.Parent = playerModel -- Parent the highlight to the player model
     
     -- Box with outline
     espData.BoxOutline = Drawing.new("Square")
@@ -227,15 +215,18 @@ function ESP:CreateESPForWorldCharacter(playerModel)
 end
 
 function ESP:UpdateESP(espData)
+    if not espData or not espData.Model or not espData.Model.Parent then
+        return
+    end
+
     local playerModel = espData.Model
+    local worldCharacter = playerModel:FindFirstChild("WorldCharacter")
+    local humanoid = playerModel:FindFirstChild("Humanoid")
     
-    if not playerModel or not playerModel.Parent then
+    if not worldCharacter or not worldCharacter.Parent then
         self:PlayerRemoving(playerModel)
         return
     end
-    
-    local worldCharacter = playerModel:FindFirstChild("WorldCharacter")
-    local humanoid = playerModel:FindFirstChild("Humanoid")
 
     if worldCharacter then
         local rootPart = worldCharacter:FindFirstChild("HumanoidRootPart")
@@ -254,7 +245,7 @@ function ESP:UpdateESP(espData)
                 local boxSize, boxTopLeft = getCharacterBounds(playerModel, camera)
                 if not boxSize then return end
                 
-                -- Update box and outline with clamped size
+                -- Update box and outline
                 espData.BoxOutline.Size = boxSize
                 espData.BoxOutline.Position = boxTopLeft
                 espData.BoxOutline.Visible = true
@@ -267,30 +258,14 @@ function ESP:UpdateESP(espData)
                 local healthPercentage = humanoid and (humanoid.Health / humanoid.MaxHealth) or 1
                 local healthColor = Color3.new(1 - healthPercentage, healthPercentage, 0)
                 
-                -- Update health bar with clamped size
-                local healthBarWidth = clamp(boxSize.X * 0.05, MIN_HEALTH_BAR_WIDTH, MAX_HEALTH_BAR_WIDTH)
-                local healthBarHeight = clamp(boxSize.Y, MIN_HEALTH_BAR_HEIGHT, MAX_HEALTH_BAR_HEIGHT)
-                local healthBarPos = Vector2.new(boxTopLeft.X - healthBarWidth - 2, boxTopLeft.Y)
-
-                espData.HealthBarOutline.Size = Vector2.new(healthBarWidth + 2, healthBarHeight + 2)
-                espData.HealthBarOutline.Position = Vector2.new(healthBarPos.X - 1, healthBarPos.Y - 1)
-                espData.HealthBarOutline.Visible = true
-
-                espData.HealthBarBG.Size = Vector2.new(healthBarWidth, healthBarHeight)
-                espData.HealthBarBG.Position = healthBarPos
-                espData.HealthBarBG.Visible = true
-
-                espData.HealthBar.Size = Vector2.new(healthBarWidth, healthBarHeight * healthPercentage)
-                espData.HealthBar.Position = Vector2.new(healthBarPos.X, healthBarPos.Y + healthBarHeight * (1 - healthPercentage))
-                espData.HealthBar.Color = healthColor
-                espData.HealthBar.Visible = true
-
-                -- Update text positions based on clamped box size
+                
+                -- Update name text at top
                 updateOutlinedText(
                     espData.nameText,
                     Vector2.new(boxTopLeft.X + boxSize.X/2, boxTopLeft.Y - 20),
                     playerModel.Name,
                     healthColor
+                    
                 )
                 
                 -- Try to find equipped weapon (adjust this based on your game's weapon system)
@@ -364,7 +339,6 @@ function ESP:UpdateESP(espData)
             end
         else
             DebugPrint("No HumanoidRootPart found for player: " .. playerModel.Name)
-            self:PlayerRemoving(playerModel)
         end
     else
         DebugPrint("WorldCharacter not found for player: " .. playerModel.Name)
